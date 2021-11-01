@@ -38,8 +38,17 @@ module.exports = {
       tenant: req.baseUrl.split("/")[1],
       user: req.user,
       req: apiUtils.getRequestLogObject(req),
+      token: apiUtils.getToken(req.headers)
     };
-    logger.debug(`Flows requested in Editor-API/admin for tenant: ${opts.tenant}`, {
+
+    if (!apiUtils.tenantChecker(opts.tenant, req.tokenTenant)) {
+      const err = new Error("Requesting data from wrong tenant.");
+      err.code = 412;
+      apiUtils.rejectHandler(req, res, err);
+      return false;
+    }
+
+    logger.debug(`Valid flow requested in Editor-API/admin for tenant: ${opts.tenant}`, {
       rid: `tenant/${runtimeAPI.tenant}`,
     });
 
@@ -66,6 +75,7 @@ module.exports = {
     const opts = {
       tenant: req.baseUrl.split("/")[1],
       user: req.user,
+      token: apiUtils.getToken(req.headers),
       deploymentType: req.get("Node-RED-Deployment-Type") || "full",
       req: apiUtils.getRequestLogObject(req),
     };

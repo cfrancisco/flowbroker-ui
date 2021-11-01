@@ -247,6 +247,9 @@ const RED = (function () {
     $.ajax({
       headers: {
         Accept: "application/json",
+        Authorization: `Bearer ${StorageService.getToken()}`,
+        "Content-Type": "application/json",
+
       },
       cache: false,
       url: "flows",
@@ -368,9 +371,8 @@ const RED = (function () {
           } else if (msg.error === "missing-modules") {
             text += `<ul><li>${msg.modules
               .map(
-                (m) =>
-                  RED.utils.sanitize(m.module) +
-                  (m.error ? ` - <small>${RED.utils.sanitize(`${m.error}`)}</small>` : ""),
+                (m) => RED.utils.sanitize(m.module)
+                  + (m.error ? ` - <small>${RED.utils.sanitize(`${m.error}`)}</small>` : ""),
               )
               .join("</li><li>")}</li></ul>`;
             options.buttons = [
@@ -588,10 +590,9 @@ const RED = (function () {
     $.get("red/about", (data) => {
       // data will be strictly markdown. Any HTML should be escaped.
       data = RED.utils.sanitize(data);
-      const aboutHeader =
-        '<div style="text-align:center;">' +
-        '<img width="50px" src="red/images/node-red-icon.svg" />' +
-        "</div>";
+      const aboutHeader = "<div style=\"text-align:center;\">"
+        + "<img width=\"50px\" src=\"red/images/node-red-icon.svg\" />"
+        + "</div>";
 
       RED.sidebar.help.set(aboutHeader + RED.utils.renderMarkdown(data));
     });
@@ -789,7 +790,7 @@ const RED = (function () {
     });
 
     $(
-      '<li><a id="red-ui-header-button-sidemenu" class="button" href="#"><i class="fa fa-bars"></i></a></li>',
+      "<li><a id=\"red-ui-header-button-sidemenu\" class=\"button\" href=\"#\"><i class=\"fa fa-bars\"></i></a></li>",
     ).appendTo(".red-ui-header-toolbar");
     RED.menu.init({
       id: "red-ui-header-button-sidemenu",
@@ -848,22 +849,22 @@ const RED = (function () {
   function buildEditor(options) {
     console.log("options.target", options.target);
 
-    const header = $('<div id="red-ui-header"></div>').appendTo(options.target);
-    let logo = $('<span class="red-ui-header-logo"></span>').appendTo(header);
-    $('<ul class="red-ui-header-toolbar hide"></ul>').appendTo(header);
-    $('<div id="red-ui-header-shade" class="hide"></div>').appendTo(header);
+    const header = $("<div id=\"red-ui-header\"></div>").appendTo(options.target);
+    let logo = $("<span class=\"red-ui-header-logo\"></span>").appendTo(header);
+    $("<ul class=\"red-ui-header-toolbar hide\"></ul>").appendTo(header);
+    $("<div id=\"red-ui-header-shade\" class=\"hide\"></div>").appendTo(header);
     $(
-      '<div id="red-ui-main-container" class="red-ui-sidebar-closed hide">' +
-        '<div id="red-ui-workspace"></div>' +
-        '<div id="red-ui-editor-stack"></div>' +
-        '<div id="red-ui-palette"></div>' +
-        '<div id="red-ui-sidebar"></div>' +
-        '<div id="red-ui-sidebar-separator"></div>' +
-        "</div>",
+      "<div id=\"red-ui-main-container\" class=\"red-ui-sidebar-closed hide\">"
+        + "<div id=\"red-ui-workspace\"></div>"
+        + "<div id=\"red-ui-editor-stack\"></div>"
+        + "<div id=\"red-ui-palette\"></div>"
+        + "<div id=\"red-ui-sidebar\"></div>"
+        + "<div id=\"red-ui-sidebar-separator\"></div>"
+        + "</div>",
     ).appendTo(options.target);
-    $('<div id="red-ui-editor-plugin-configs"></div>').appendTo(options.target);
-    $('<div id="red-ui-editor-node-configs"></div>').appendTo(options.target);
-    $('<div id="red-ui-full-shade" class="hide"></div>').appendTo(options.target);
+    $("<div id=\"red-ui-editor-plugin-configs\"></div>").appendTo(options.target);
+    $("<div id=\"red-ui-editor-node-configs\"></div>").appendTo(options.target);
+    $("<div id=\"red-ui-full-shade\" class=\"hide\"></div>").appendTo(options.target);
 
     loader.init().appendTo("#red-ui-main-container");
     loader.start("...", 0);
@@ -919,7 +920,7 @@ const RED = (function () {
 
   var loader = {
     init() {
-      const wrapper = $('<div id="red-ui-loading-progress"></div>').hide();
+      const wrapper = $("<div id=\"red-ui-loading-progress\"></div>").hide();
       const container = $("<div>").appendTo(wrapper);
       const label = $("<div>", { class: "red-ui-loading-bar-label" }).appendTo(container);
       const bar = $("<div>", { class: "red-ui-loading-bar" }).appendTo(container);
@@ -946,4 +947,4 @@ const RED = (function () {
     init,
     loader,
   };
-})();
+}());

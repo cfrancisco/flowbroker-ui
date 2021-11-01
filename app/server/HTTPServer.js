@@ -6,6 +6,7 @@ const express = require("express");
 
 const logger = new Logger("flowbroker-ui:http-server");
 
+const dojotTenantJwtParseInterceptor = require("./interceptors/DojotTenantJwtParse");
 /**
  * Wrapper to instantiate and configure a http server
  */
@@ -20,31 +21,42 @@ class HTTPServer {
     this.config = config;
     this.alias = alias;
 
-    // Creating express wrapper
+    // Creating a HTTP Server
     this.server = WebUtils.createServer({ config: this.config, logger });
 
     const { requestLogInterceptor } = WebUtils.framework.interceptors;
 
     // Creating routes
-    /*
+
     this.framework = WebUtils.framework.createExpress({
       interceptors: [
         requestLogInterceptor({
           logger,
         }),
+        dojotTenantJwtParseInterceptor(),
       ],
- */
-
-    // WebUtils.framework.defaultErrorHandler
-    this.framework = express();
+      logger,
+      errorHandlers: [
+        WebUtils.framework.defaultErrorHandler({
+          logger,
+        }),
+      ],
+      supportWebsockets: true,
+      server: this.server,
+      catchInvalidRequest: false,
+    });
 
     logger.debug("Express Framework registered as listener for requests to the web server.");
 
-    // service state manager
+    // Binding the service state manager
     this.serviceStateManager = serviceStateManager;
     this.serviceStateManager.registerService(alias);
 
+    //   this.server.on("request", this.interceptorFramework);
+    // this.interceptorFramework.on("request", this.framework);
+
     this.server.on("request", this.framework);
+    //    this.interceptorFramework.use("/", this.framework);
 
     // Emitted when the server has been bound after calling server.listen().
     this.server.on("listening", () => {
@@ -81,6 +93,14 @@ class HTTPServer {
       logger.debug("The server no longer accepts connections!");
       return Promise.resolve(true);
     });
+  }
+
+  close() {
+    this.server.close();
+  }
+
+  on(method, callback) {
+    this.server.on(method, callback);
   }
 
   /**

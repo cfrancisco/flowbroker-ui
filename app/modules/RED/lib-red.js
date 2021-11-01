@@ -6,60 +6,12 @@ const importFresh = require("import-fresh");
 
 const MainStorage = require("../storage/MainStorage");
 
+const RepoLibRed = require("../storage/RepoLibRed");
+
 const api = importFresh("../../@node-red/editor-api/lib");
 
 const logger = new Logger("flowbroker-ui:lib-red");
 
-/* Internal Repository */
-class RepoLibRed {
-  constructor() {
-    this._apiEnabled = null;
-    this._server = null;
-    this._runtime = {};
-    this._tenant = null;
-    return this;
-  }
-
-  get apiEnabled() {
-    return this._apiEnabled;
-  }
-
-  get server() {
-    return this._server;
-  }
-
-  get runtime() {
-    return this._runtime;
-  }
-
-  get tenant() {
-    return this._tenant;
-  }
-
-  get instanceId() {
-    return this._instanceId;
-  }
-
-  set instanceId(val) {
-    this._instanceId = val;
-  }
-
-  set runtime(val) {
-    this._runtime = val;
-  }
-
-  set apiEnabled(val) {
-    this._apiEnabled = val;
-  }
-
-  set server(val) {
-    this._server = val;
-  }
-
-  set tenant(val) {
-    this._tenant = val;
-  }
-}
 const repo = new RepoLibRed();
 
 /**
@@ -107,8 +59,7 @@ module.exports = {
     repo.server = httpServer;
     logger.info("RED Application initialized.", { rid: `tenant/${repo.tenant}` });
   },
-  instanceId: repo.instanceId,
-  tenant: repo.tenant,
+
   /**
    * Start the Node-RED application.
    * @return {Promise} - resolves when complete
@@ -166,7 +117,9 @@ module.exports = {
       return Promise.resolve();
     });
   },
-
+  /* exporting instanceId and tenant */
+  instanceId: repo.instanceId,
+  tenant: repo.tenant,
   /**
    * Logging utilities
    * @see @node-red/util_log

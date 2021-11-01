@@ -28,7 +28,7 @@ module.exports = {
       tenant: req.baseUrl.split("/")[1],
       req: apiUtils.getRequestLogObject(req),
     };
-    if (req.get("accept") == "application/json") {
+    if (req.get("accept") === "application/json") {
       runtimeAPI.nodes.getNodeList(opts).then((list) => {
         res.json(list);
       });

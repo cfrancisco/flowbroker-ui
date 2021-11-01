@@ -19,6 +19,10 @@ const crypto = require("crypto");
 
 const { log } = require("@node-red/util");
 
+const { Logger } = require("@dojot/microservice-sdk");
+
+const logger = new Logger("flowbroker-ui:runtime/storage");
+
 let runtime;
 let storageModule;
 let settingsAvailable;
@@ -55,13 +59,15 @@ var storageModuleInterface = {
     // Any errors thrown by the module will get passed up to the called
     // as a rejected promise
     storageModule = moduleSelector(runtime.settings);
-    settingsAvailable = storageModule.hasOwnProperty("getSettings") && storageModule.hasOwnProperty("saveSettings");
-    sessionsAvailable = storageModule.hasOwnProperty("getSessions") && storageModule.hasOwnProperty("saveSessions");
+    settingsAvailable =
+      storageModule.hasOwnProperty("getSettings") && storageModule.hasOwnProperty("saveSettings");
+    sessionsAvailable =
+      storageModule.hasOwnProperty("getSessions") && storageModule.hasOwnProperty("saveSessions");
     if (storageModule.projects) {
       let projectsEnabled = false;
       if (
-        runtime.settings.hasOwnProperty("editorTheme")
-        && runtime.settings.editorTheme.hasOwnProperty("projects")
+        runtime.settings.hasOwnProperty("editorTheme") &&
+        runtime.settings.editorTheme.hasOwnProperty("projects")
       ) {
         projectsEnabled = runtime.settings.editorTheme.projects.enabled === true;
       }
@@ -75,18 +81,25 @@ var storageModuleInterface = {
     return storageModule.init(runtime.settings, runtime);
   },
   async getFlows(tenant) {
-    return storageModule.getFlows().then((flows) => storageModule.getCredentials().then((creds) => {
-      const withTenant = flows.map((flow) => ({ ...flow, tenant }));
-      const result = {
-        flows: withTenant,
-        credentials: creds,
-      };
-      result.rev = crypto.createHash("md5").update(JSON.stringify(result.flows)).digest("hex");
-      console.log("result", result);
-      return result;
-    }),);
+    logger.debug("Passing in StorageModuleInterface to get flows.", {
+      rid: `tenant/${tenant}`,
+    });
+    return storageModule.getFlows(tenant).then((flows) =>
+      storageModule.getCredentials().then((creds) => {
+        const withTenant = flows.map((flow) => ({ ...flow, tenant }));
+        const result = {
+          flows: withTenant,
+          credentials: creds,
+        };
+        result.rev = crypto.createHash("md5").update(JSON.stringify(result.flows)).digest("hex");
+        return result;
+      }),
+    );
   },
   async saveFlows(config, user) {
+    logger.debug(`Passing in StorageModuleInterface to save flows with token: ${user.token}`, {
+      rid: `tenant/${user.tenant}`,
+    });
     const { flows } = config;
     const { credentials } = config;
     let credentialSavePromise;
@@ -97,9 +110,11 @@ var storageModuleInterface = {
     }
     delete config.credentialsDirty;
 
-    return credentialSavePromise.then(() => storageModule
-      .saveFlows(flows, user)
-      .then(() => crypto.createHash("md5").update(JSON.stringify(config.flows)).digest("hex")),);
+    return credentialSavePromise.then(() =>
+      storageModule
+        .saveFlows(flows, user)
+        .then(() => crypto.createHash("md5").update(JSON.stringify(config.flows)).digest("hex")),
+    );
   },
   // getCredentials: function() {
   //     return storageModule.getCredentials();

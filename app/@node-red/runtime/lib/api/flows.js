@@ -42,7 +42,11 @@ const api = {
     // Issue: runtime.flows isn't bound with right runtime, so will get from the MainStorage
     const _runtime = MainStorage.getByTenant(opts.tenant, "runtime");
     log.audit({ event: "flows.get" }, opts.req);
-    console.log("Requesting Flows for tenant: ", opts.tenant, ` Using runtime: ${runtime.tenant}`);
+    console.log(
+      "Requesting Flows for tenant: ",
+      opts.tenant,
+      ` Using runtimeAPI: ${runtime.tenant}`,
+    );
 
     return _runtime._.nodes.flows.getFlows();
   },
@@ -51,7 +55,8 @@ const api = {
    * @param {Object} opts
    * @param {User} opts.user - the user calling the api
    * @param {Object} opts.flows - the flow configuration: `{flows: [..], credentials: {}}`
-   * @param {Object} opts.deploymentType - the type of deployment - "full", "nodes", "flows", "reload"
+   * @param {Object} opts.deploymentType - the type of deployment:
+   *     - "full", "nodes", "flows", "reload"
    * @param {Object} opts.req - the request to log (optional)
    * @return {Promise<Flows>} - the active flow configuration
    * @memberof @node-red/runtime_flows
@@ -66,7 +71,7 @@ const api = {
     return mutex.runExclusive(async () => {
       const { flows } = opts;
 
-      // For Dojot is always deploymentType  full
+      // When receives from UI, for Dojot, we always setting deploymentType as full.
       const deploymentType = opts.deploymentType || "full";
       log.audit({ event: "flows.set", type: deploymentType }, opts.req);
 
@@ -85,14 +90,14 @@ const api = {
             throw err;
           }
         }
+        const user = { ...opts.user, tenant: _runtime.tenant, token: opts.token };
         apiPromise = _runtime._.nodes.flows.setFlows(
           flows.flows,
           flows.credentials,
           deploymentType,
           null,
           null,
-          opts.user,
-          _runtime.tenant,
+          user,
         );
       }
       return apiPromise
@@ -187,7 +192,7 @@ const api = {
       const { flow } = opts;
       const { id } = opts;
       return _runtime._.nodes.flows
-        .updateFlow(id, flow, opts.user)
+        .updateFlow(id, flow, opts.user, opts.token)
         .then(() => {
           log.audit({ event: "flow.update", id }, opts.req);
           return id;

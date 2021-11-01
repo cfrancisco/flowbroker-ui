@@ -4,6 +4,8 @@ const axios = require("axios");
 
 const { castFlowsToDojot, castDojotToFlows } = require("./utils");
 
+const { removeFlow, saveFlow, updateFlow } = require("../../services/flows.service");
+
 /**
  * Class representing a DojotHandler
  * @class
@@ -19,8 +21,8 @@ class DojotHandler {
    *
    * @constructor
    */
-  constructor(configs) {
-    this.tenant = configs.tenant;
+  constructor(configs, tenantName) {
+    this.tenant = tenantName;
     this.logger = new Logger("flowbroker-ui:DojotHandler");
     this.configs = configs;
     this.user = configs.user;
@@ -33,18 +35,21 @@ class DojotHandler {
    */
   async init() {
     try {
-      this.logger.info("Requesting Token to Dojot.");
+      this.logger.info("Requesting Default User Token to Dojot.", {
+        rid: `tenant/${this.tenant}`,
+      });
       const res = await axios.post(
         this.configs.auth.url,
         { username: this.user, passwd: this.password },
         { accept: "application/json" },
       );
-      this.token = res.data.jwt;
-      this.logger.debug(`Token was created. Using ${this.token}`);
-
+      this.defaultToken = res.data.jwt;
+      this.logger.debug(`Token was received. Using ${this.defaultToken}`, {
+        rid: `tenant/${this.tenant}`,
+      });
       this.config = {
         accept: "application/json",
-        headers: { Authorization: `Bearer ${this.token}` },
+        headers: { Authorization: `Bearer ${this.defaultToken}` },
       };
     } catch (err) {
       this.logger.error(`init DojotHandler - Requesting error: ${err.toString()}`);
@@ -56,9 +61,11 @@ class DojotHandler {
    *
    */
   getFlows() {
-    this.logger.info("Requesting Flows from Dojot.");
+    this.logger.info("Requesting Flows from Dojot.", {
+      rid: `tenant/${this.tenant}`,
+    });
+    // return data as a promise
     return new Promise((resolve, reject) => {
-      // create and return a promise
       axios
         .get(this.configs.flow.url, this.config)
         .then((response) => {
@@ -76,77 +83,39 @@ class DojotHandler {
   }
 
   /**
-   * Save flows to Dojot.
+   * Main method to save flows in Dojot.
+   * To attempt it, we should uses the JWT Token sent by the requester.
    *
    * @param {array{object}} flows A list of Dojot flows
    */
-  saveFlows(flows) {
-    this.logger.info("Saving Flows to Dojot...");
+  saveFlows(flows, user) {
+    this.logger.info(`Saving Flows to Dojot with Token: ${user.token}`, {
+      rid: `tenant/${this.tenant}`,
+    });
     // create and return a promise
     const getAllFlows = castFlowsToDojot(flows);
     const promisesFlows = [];
+
+    // create configuration to be used in axios
+    const headers = {
+      accept: "application/json",
+      headers: { Authorization: `Bearer ${user.token}` },
+    };
+
     getAllFlows.forEach((flow) => {
       // remove the "should be deleted" flows
       if (flow.shouldBeDeleted) {
-        promisesFlows.push(this.removeFlow(flow));
+        promisesFlows.push(removeFlow(flow, headers, this.tenant));
         return;
       }
 
       if (flow.isNew) {
-        promisesFlows.push(this.saveFlow(flow));
+        promisesFlows.push(saveFlow(flow, headers, this.tenant));
       } else {
-        promisesFlows.push(this.updateFlow(flow));
+        promisesFlows.push(updateFlow(flow, headers, this.tenant));
       }
     });
     return Promise.all(promisesFlows);
-  }
-
-  /**
-   * Remove an flow from Dojot.
-   *
-   * @param {object} flow The flow to be removed.
-   */
-  removeFlow(flow) {
-    return axios
-      .delete(`${this.configs.flow.url}/${flow.id}`, this.config)
-      .then(() => {
-        this.logger.info(`Flow ${flow.name} successfully removed from Dojot.`);
-      })
-      .catch((err) => {
-        this.logger.error(`removeFlow DojotHandler - Requesting error: ${err.toString()}`);
-      });
-  }
-
-  /**
-   * Save flow to Dojot.
-   *
-   * @param {object} flow A flow to be saved in Dojot
-   */
-  saveFlow(flow) {
-    return axios
-      .post(this.configs.flow.url, flow, this.config)
-      .then(() => {
-        this.logger.info(`Flow ${flow.name} successfully saved to Dojot.`);
-      })
-      .catch((err) => {
-        this.logger.error(`saveFlow DojotHandler - Requesting error: ${err.toString()}`);
-      });
-  }
-
-  /**
-   * Update flow in Dojot.
-   *
-   * @param {object} flow A flow to be updated in Dojot
-   */
-  updateFlow(flow) {
-    return axios
-      .put(`${this.configs.flow.url}/${flow.id}`, flow, this.config)
-      .then(() => {
-        this.logger.info(`Flow ${flow.name} successfully updated in Dojot.`);
-      })
-      .catch((err) => {
-        this.logger.error(`updateFlow DojotHandler - Requesting error: ${err.toString()}`);
-      });
   }
 }
 

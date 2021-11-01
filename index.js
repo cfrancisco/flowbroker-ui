@@ -3,13 +3,13 @@ const { unflatten } = require("flat");
 const { Logger, ConfigManager, ServiceStateManager } = require("@dojot/microservice-sdk");
 const express = require("express");
 const path = require("path");
-const { HTTPServer } = require("./app/modules/server/HTTPServer");
+const { HTTPServer } = require("./app/server/HTTPServer");
 
 const { RedFactory } = require("./app/RedFactory");
 
 const userConfigFile = process.env.FLOWUI_USER_CONFIG_FILE || "production.conf";
 
-const http = require("http");
+// const http = require("http");
 
 const MainStorage = require("./app/modules/storage/MainStorage");
 
@@ -17,7 +17,7 @@ ConfigManager.loadSettings("FLOWBROKER-UI", userConfigFile);
 
 const config = unflatten(ConfigManager.getConfig("FLOWBROKER-UI"));
 
-/* Loggers */
+/* Configuring Loggers */
 Logger.setTransport("console", {
   level: config.logger.console.level.toLowerCase(),
 });
@@ -32,8 +32,6 @@ if (config.logger.file.enable) {
 }
 Logger.setVerbose(config.logger.verbose);
 
-// global storage
-global.tenantStorage = {};
 /*
 Using Dependency Inversion
 */
@@ -55,10 +53,13 @@ const stateManager = new ServiceStateManager({
 /*
    Instantiate Main HTTP Server */
 const server = new HTTPServer(config.flowui, stateManager);
+
+MainStorage.webSocketServer = server;
+
+/*
+// instantiate Websocket Server
 stateManager.registerService("wsSocket");
 stateManager.signalReady("wsSocket");
-
-// instantiate Websocket Server
 let httpServer = http.createServer((request, response) => {
   logger.debug(`${new Date()} Received request for ${request.url}`);
   response.writeHead(404);
@@ -67,8 +68,8 @@ let httpServer = http.createServer((request, response) => {
 httpServer.listen(7000, () => {
   logger.info(`${new Date()} Server is listening on port 7000`);
 });
-
 MainStorage.webSocketServer = httpServer;
+*/
 
 /*
    Load node-RED configuration e override settings
@@ -76,13 +77,13 @@ MainStorage.webSocketServer = httpServer;
    file schema.
   */
 const settings = require("./config/red-settings");
-const RedStorage = require("./app/modules/storage/RedStorage");
 
 settings.uiPort = config.flowui.port;
 settings.uiHost = config.flowui.host;
 settings.serverPort = config.flowui.port;
 settings.settingsFile = "./config/red-settings.js";
 settings.coreNodesDir = path.dirname(require.resolve("./app/@node-red/nodes"));
+
 /*
   Factory used to create new RED instances */
 const redFactory = new RedFactory(stateManager, logger);
@@ -91,7 +92,7 @@ const redFactory = new RedFactory(stateManager, logger);
 TODO
 Request  DATA
 */
-const tenantList = ["cabelo", "francisco"];
+const tenantList = ["admin", "francisco"];
 
 // Setting /nodered endpoint to Editor Admin API
 // The path for  Editor Admin API will be the related tenant
@@ -110,8 +111,6 @@ tenantList.forEach((tenant) => {
   // Creating an application for each tenant
   const redInstance = redFactory.create(tenant);
   MainStorage.setInstance(tenant, redInstance);
-
-  const strage = new RedStorage(tenant);
 
   // initializes the Node-RED
   logger.info(`Initializing Node-RED with ID: ${redInstance.instanceId}`);
@@ -157,16 +156,15 @@ function exitWhenStopped() {
     stateManager.signalNotReady("wsSocket");
     stopping = true;
     tenantList.forEach((tenant) => {
+      console.log("tenant", tenant);
       const inst = MainStorage.getByTenant(tenant, "redInstance");
+      console.log("inst.tenant", inst.tenant);
       stateManager.signalNotReady(`RED-instance-${inst.tenant}`);
       inst.stop().then(() => {
         process.exit();
       });
     });
-    if (httpServer) {
-      httpServer.close();
-      httpServer = null;
-    }
+    server.close();
   }
 }
 

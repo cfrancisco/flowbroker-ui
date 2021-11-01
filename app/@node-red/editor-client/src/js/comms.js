@@ -37,8 +37,8 @@ RED.comms = (function () {
       }
     } else {
       let path = location.hostname;
-      // const { port } = location;
-      const port = 7000;
+      const { port } = location;
+      // const port = 7000;
       if (port.length !== 0) {
         path = `${path}:${port}`;
       }

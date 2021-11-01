@@ -2,9 +2,9 @@ const { Logger, ConfigManager } = require("@dojot/microservice-sdk");
 
 const { unflatten } = require("flat");
 
-const DojotHandler = require("./DojotHandler");
-
 const config = unflatten(ConfigManager.getConfig("FLOWBROKER-UI"));
+
+const MainStorage = require("../storage/MainStorage");
 
 /**
  * This module bind the Node-Red's storage schema to Dojot
@@ -13,28 +13,27 @@ const config = unflatten(ConfigManager.getConfig("FLOWBROKER-UI"));
 const storageModule = {
   init() {
     if (config.dojot == null || config.dojot.tenant == null) {
-      throw new Error(
-        "Dojot storage module required parameters are not defined.",
-      );
+      throw new Error("Dojot storage module required parameters are not defined.");
     }
     this.logger = new Logger("flowbroker-ui:storageModule");
-    this.dojotHandler = new DojotHandler(config.dojot);
-    this.logger.info("Initialized.");
+    this.logger.info("Storage Module initialized.");
   },
   /**
    * request flows from DojotHandler
    * @returns {Promise.<array>} a list of installed flows on Dojot
    *
    */
-  getFlows: function async() {
+  getFlows: function async(tenant) {
+    const dojotHandler = MainStorage.getByTenant(tenant, "dojotHandler");
     return (async () => {
-      await this.dojotHandler.init();
-      return this.dojotHandler.getFlows();
+      await dojotHandler.init();
+      return dojotHandler.getFlows();
     })();
   },
 
-  saveFlows(flows) {
-    return this.dojotHandler.saveFlows(flows);
+  saveFlows(flows, user) {
+    const dojotHandler = MainStorage.getByTenant(user.tenant, "dojotHandler");
+    return dojotHandler.saveFlows(flows, user);
   },
 
   getCredentials() {
