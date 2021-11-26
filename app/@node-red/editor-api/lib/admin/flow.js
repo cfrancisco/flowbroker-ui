@@ -1,3 +1,4 @@
+/* === This is a file from Node-Red being used as-is. === */
 /**
  * Copyright JS Foundation and other contributors, http://js.foundation
  *
@@ -12,62 +13,68 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ * */
 
-var runtimeAPI;
-var apiUtils = require("../util");
+let runtimeAPI;
+const apiUtils = require("../util");
 
 module.exports = {
-    init: function(_runtimeAPI) {
-        runtimeAPI = _runtimeAPI;
-    },
-    get: function(req,res) {
-        var opts = {
-            user: req.user,
-            id: req.params.id,
-            req: apiUtils.getRequestLogObject(req)
-        }
-        runtimeAPI.flows.getFlow(opts).then(function(result) {
-            return res.json(result);
-        }).catch(function(err) {
-            apiUtils.rejectHandler(req,res,err);
-        })
-    },
-    post: function(req,res) {
-        var opts = {
-            user: req.user,
-            flow: req.body,
-            req: apiUtils.getRequestLogObject(req)
-        }
-        runtimeAPI.flows.addFlow(opts).then(function(id) {
-            return res.json({id:id});
-        }).catch(function(err) {
-            apiUtils.rejectHandler(req,res,err);
-        })
-    },
-    put: function(req,res) {
-        var opts = {
-            user: req.user,
-            id: req.params.id,
-            flow: req.body,
-            req: apiUtils.getRequestLogObject(req)
-        }
-        runtimeAPI.flows.updateFlow(opts).then(function(id) {
-            return res.json({id:id});
-        }).catch(function(err) {
-            apiUtils.rejectHandler(req,res,err);
-        })
-    },
-    delete: function(req,res) {
-        var opts = {
-            user: req.user,
-            id: req.params.id,
-            req: apiUtils.getRequestLogObject(req)
-        }
-        runtimeAPI.flows.deleteFlow(opts).then(function() {
-            res.status(204).end();
-        }).catch(function(err) {
-            apiUtils.rejectHandler(req,res,err);
-        })
-    }
-}
+  init(_runtimeAPI) {
+    runtimeAPI = _runtimeAPI;
+  },
+  get(req, res) {
+    const opts = {
+      user: req.user,
+      id: req.params.id,
+      req: apiUtils.getRequestLogObject(req),
+    };
+    runtimeAPI.flows
+      .getFlow(opts)
+      .then((result) => res.json(result))
+      .catch((err) => {
+        apiUtils.rejectHandler(req, res, err);
+      });
+  },
+  post(req, res) {
+    const opts = {
+      user: req.user,
+      flow: req.body,
+      req: apiUtils.getRequestLogObject(req),
+    };
+    runtimeAPI.flows
+      .addFlow(opts)
+      .then((id) => res.json({ id }))
+      .catch((err) => {
+        apiUtils.rejectHandler(req, res, err);
+      });
+  },
+  put(req, res) {
+    const opts = {
+      user: req.user,
+      id: req.params.id,
+      flow: req.body,
+      req: apiUtils.getRequestLogObject(req),
+    };
+    runtimeAPI.flows
+      .updateFlow(opts)
+      .then((id) => res.json({ id }))
+      .catch((err) => {
+        apiUtils.rejectHandler(req, res, err);
+      });
+  },
+  delete(req, res) {
+    const opts = {
+      user: req.user,
+      id: req.params.id,
+      req: apiUtils.getRequestLogObject(req),
+    };
+    runtimeAPI.flows
+      .deleteFlow(opts)
+      .then(() => {
+        res.status(204).end();
+      })
+      .catch((err) => {
+        apiUtils.rejectHandler(req, res, err);
+      });
+  },
+};

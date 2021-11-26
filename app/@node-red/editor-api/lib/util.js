@@ -12,57 +12,84 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
+ * */
 
+const { log } = require("@node-red/util");
 
-var log = require("@node-red/util").log; // TODO: separate module
-var i18n = require("@node-red/util").i18n; // TODO: separate module
-
+const { i18n } = require("@node-red/util");
 
 module.exports = {
-    errorHandler: function(err,req,res,next) {
-        //TODO: why this when rejectHandler also?!
-
-        if (err.message === "request entity too large") {
-            log.error(err);
-        } else {
-            log.error(err.stack);
-        }
-        log.audit({event: "api.error",error:err.code||"unexpected_error",message:err.toString()},req);
-        res.status(400).json({error:"unexpected_error", message:err.toString()});
-    },
-
-    determineLangFromHeaders: function(acceptedLanguages){
-        var lang = i18n.defaultLang;
-        acceptedLanguages = acceptedLanguages || [];
-        if (acceptedLanguages.length >= 1) {
-            lang = acceptedLanguages[0];
-        }
-        return lang;
-    },
-    rejectHandler: function(req,res,err) {
-        //TODO: why this when errorHandler also?!
-        log.audit({event: "api.error",error:err.code||"unexpected_error",message:err.message||err.toString()},req);
-        if (!err.code) {
-            // by definition, an unexpected_error to log
-            log.error(err);
-        }
-        var response = {
-            code: err.code||"unexpected_error",
-            message: err.message||err.toString()
-        };
-        // Handle auth failures on a specific remote
-        // TODO: don't hardcode this here - allow users of rejectHandler to identify extra props to send
-        if (err.remote) {
-            response.remote = err.remote;
-        }
-        res.status(err.status||400).json(response);
-    },
-    getRequestLogObject: function(req) {
-        return {
-            user: req.user,
-            path: req.path,
-            ip: (req.headers && req.headers['x-forwarded-for']) || (req.connection && req.connection.remoteAddress) || undefined
-        }
+  getToken(headers) {
+    if (headers.authorization) {
+      return headers.authorization.substr(7); // removing 'Bearer '
     }
-}
+    return false;
+  },
+
+  tenantChecker(targetTenant, validTenant) {
+    if (targetTenant === validTenant) {
+      return true;
+    }
+    log.error(`Requested data from invalid tenant. Requesting ${targetTenant} from ${validTenant}`);
+    return false;
+  },
+
+  errorHandler(err, req, res, next) {
+    // TODO: why this when rejectHandler also?!
+
+    if (err.message === "request entity too large") {
+      log.error(err);
+    } else {
+      log.error(err.stack);
+    }
+    log.audit(
+      { event: "api.error", error: err.code || "unexpected_error", message: err.toString() },
+      req,
+    );
+    res.status(400).json({ error: "unexpected_error", message: err.toString() });
+  },
+
+  determineLangFromHeaders(acceptedLanguages) {
+    let lang = i18n.defaultLang;
+    acceptedLanguages = acceptedLanguages || [];
+    if (acceptedLanguages.length >= 1) {
+      lang = acceptedLanguages[0];
+    }
+    return lang;
+  },
+  rejectHandler(req, res, err) {
+    // TODO: why this when errorHandler also?!
+    log.audit(
+      {
+        event: "api.error",
+        error: err.code || "unexpected_error",
+        message: err.message || err.toString(),
+      },
+      req,
+    );
+    if (!err.code) {
+      // by definition, an unexpected_error to log
+      log.error(err);
+    }
+    const response = {
+      code: err.code || "unexpected_error",
+      message: err.message || err.toString(),
+    };
+    // Handle auth failures on a specific remote
+    // TODO: don't hardcode this here - allow users of rejectHandler to identify extra props to send
+    if (err.remote) {
+      response.remote = err.remote;
+    }
+    res.status(err.status || 400).json(response);
+  },
+  getRequestLogObject(req) {
+    return {
+      user: req.user,
+      path: req.path,
+      ip:
+        (req.headers && req.headers["x-forwarded-for"]) ||
+        (req.connection && req.connection.remoteAddress) ||
+        undefined,
+    };
+  },
+};

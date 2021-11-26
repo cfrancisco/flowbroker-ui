@@ -31,7 +31,56 @@
 </script>
 
 <script type="text/x-red" data-help-name="multi device out">
-  <p>Set the value of a virtual device, based on the results of the previous operations on the flow.</p>
+  <p>Set a new value for a device, based on the results operations on the flow.</p>
+  <p>
+    Device out will determine which device (or devices) will have its attributes
+    updated on dojot according to the result of the flow. Bear in mind that this
+    node doesn’t send messages to your device, it will only update the attributes
+    on the platform. Normally, the chosen device out is a virtual device, which
+    is a device that exists only on dojot.
+  </p>
+
+  <h3>Inputs</h3>
+  <dl class="message-properties">
+    <dt class="mandatory">Name <span class="property-type">optional</span></dt>
+    <dd>Name of the node</dd>
+    <dt class="mandatory">Actions <span class="property-type">required</span></dt>
+    <dd>
+      Which device will receive the update. Options are:
+      <ul>
+        <li>
+          <u>The device that triggered the flow</u>: this will update the same device
+          that sent the message which triggered this flow.
+        </li>
+        <li>
+          <u>Specific device(s)</u>: which device(s) that will receive the update.
+        </li>
+        <li>
+          <u>Device(s) defined during the flow</u>: which device(s) which device(s) that will receive the
+          update. This is referenced by a list of values, just as with output
+          values (msg.list_of_devices).
+        </li>
+      </ul>
+    </dd>
+    <dt class="mandatory">Device <span class="property-type">required</span></dt>
+    <dd>
+      Select “The device that triggered the flow” will
+      make the device that was the entry-point be the end-point of the flow.
+      “Specific device” any chosen device wil be the output of the flow and “a
+      device defined during the flow” will make a device that the flow selected
+      during the execution the endpoint.
+    </dd>
+    <dt class="mandatory">Source <span class="property-type">required</span></dt>
+    <dd>
+      Data structure that will be mapped as message to
+      device out
+    </dd>
+  </dl>
+
+  <h3>Outputs</h3>
+  <dl class="message-properties">
+      <dd>The device will be updated by its <strong>Source</strong> attribute with the received value from the flow.</dd>
+  </dl>
 </script>
 
 <script type="text/javascript">
@@ -90,7 +139,7 @@
             page = 1;
           }
 
-          var extra = `?page_num=${page}`;
+          var extra = `?page_size=999999&page_num=${page}`;
           var orderByLabel = "sortBy=label";
 
           extra += "&" + orderByLabel;

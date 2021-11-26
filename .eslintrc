@@ -7,17 +7,21 @@
     "node": true,
     "jquery": true
   },
-  "plugins": ["import", "prettier", "security", "security-node"],
+  "plugins": [],
   "extends": [
     "prettier",
     "airbnb-base",
+    "eslint:recommended",
     "plugin:import/recommended",
     "plugin:security/recommended",
     "plugin:security-node/recommended"
   ],
   "rules": {
-    "func-names": 0,
+    "func-names": 1,
+    "implicit-arrow-linebreak": "off",
+    "global-require": "off",
     "no-underscore-dangle": "off",
+    "security/detect-object-injection": "off",
     "no-param-reassign": "off",
     "import/no-unresolved": [0, { "commonjs": true, "amd": true }],
     "comma-dangle": [

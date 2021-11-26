@@ -28,6 +28,32 @@
 </script>
 
 <script type="text/x-red" data-help-name="notification">
+    <p>This node sends a user notification to other services in dojot.</p>
+    <p>
+        This might be useful to generate application notifications that could be consumed by a front-end application. The user can set a static message to be sent or, as other output nodes, configure a variable set in a previous node which will be resolved at runtime.
+        Also, metadata can be added to the message: it can be a simple key-value object containing arbitrary data.
+    </p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt class="mandatory">Name <span class="property-type">optional</span></dt>
+        <dd>Name of the node.</dd>
+        <dt class="mandatory">Message <span class="property-type">required</span></dt>
+        <dd>
+            Static, if the notification should contain a static
+            text, or dynamic, which will enable a variable to be set as output to this
+            node. This variable will be substituted in runtime.
+        </dd>
+        <dt class="mandatory">Value <span class="property-type">required</span></dt>
+        <dd>message content (either static text or a variable reference).</dd>
+        <dt class="mandatory">Metadata <span class="property-type">required</span></dt>
+        <dd>variable reference containing a simple dictionary (key-value pairs) containing the metadata to be added to the message.</dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dd>The message will be sent to Dojot notification schema.</dd>
+    </dl>
 </script>
 
 <script type="text/javascript">

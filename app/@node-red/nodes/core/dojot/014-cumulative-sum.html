@@ -25,8 +25,32 @@
 </script>
 
 <script type="text/x-red" data-help-name="cumulative sum">
-  <p>A simple node that computes the cumulative sum of a given attribute
-      in a given temporal window.</p>
+  <p>The cumulative sum node accumulates the data for an attribute in a temporal window and keeping this in the <strong>flow</strong> context.</p>
+
+  <h3>Inputs</h3>
+  <dl class="message-properties">
+    <dt class="mandatory">Time period (min) <span class="property-type">required</span></dt>
+    <dd>Time in minutes to keep the sum.</dd>
+    
+    <dt class="mandatory">Target attribute <span class="property-type">required</span></dt>
+    <dd>Variable that contains the value to be sum.</dd>
+
+    <dt class="mandatory">Timestamp <span class="property-type">required</span></dt>
+    <dd>
+      Variable containing the timestamp from the device or dojot. Most of the time it can be set with <strong>payload.metadata.timestamp</strong>.
+    </dd>
+
+    <dt class="mandatory">Sum <span class="property-type">required</span></dt>
+    <dd>Variable that will receive the sum.</dd>
+
+    <dt class="mandatory">Name <span class="property-type">optional</span></dt>
+    <dd>Name of the node.</dd>
+  </dl>
+  
+  <h3>Outputs</h3>
+  <dl class="message-properties">
+    <dd>The flow does not receive any new data from this node.</dd>
+  </dl>
 </script>
 
 <script type="text/javascript">

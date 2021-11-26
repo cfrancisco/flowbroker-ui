@@ -37,7 +37,39 @@
 </script>
 
 <script type="text/x-red" data-help-name="event template in">
-  <p>Use data retrieved from a previously configured sensor as input to logic.</p>
+  <p>Use data retrieved from a previously configured sensor as initial input to flow.</p>
+  <p>
+    This node will specifies that messages from devices composed by a particular
+    template will trigger this flow. For instance, if the device template set in
+    this node is template A, all devices that are composed with template A will
+    trigger the flow. For example: device1 is composed by templates [A,B],
+    device2 by template A and device3 by template B. Then, in that scenario,
+    only messages from device1 and device2 will initiate the flow, because
+    template A is one of the templates that compose those devices.
+  </p>
+
+  <h3>Inputs</h3>
+  <dl class="message-properties">
+    <dt class="mandatory">Name <span class="property-type">optional</span></dt>
+    <dd>Name of the node</dd>
+    <dt class="mandatory">Device <span class="property-type">required</span></dt>
+    <dd>The dojot device that will trigger the flow</dd>
+    <dt class="mandatory">Events <span class="property-type">required</span></dt>
+    <dd>
+        Select which events will trigger this flow.
+    </dd>
+    <dd>
+      <u>Creation</u>, <u>Update</u>, <u>Removal</u> are related to device management operations.
+      Actuation will trigger this flow in case of sending actuation messages to
+      the device and Publication will trigger this flow whenever a device
+      publishes a message to dojot.
+    </dd>
+  </dl>
+
+  <h3>Outputs</h3>
+  <dl class="message-properties">
+      <dd>Input data received to start the flow</dd>
+  </dl>
 </script>
 
 <script type="text/javascript">
@@ -82,7 +114,7 @@
             page = 1;
           }
 
-          let extra = `?page_num=${page}`;
+          let extra = `?page_size=9999&page_num=${page}`;
           let orderByLabel = "sortBy=label";
 
           extra += "&" + orderByLabel;

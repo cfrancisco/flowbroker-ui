@@ -32,6 +32,27 @@
 </script>
 
 <script type="text/x-red" data-help-name="get context">
+    <p>This node is used to get a variable that is in the context and assign its value to a variable that will be used in the flow.</p>
+
+    <p>
+        Context is a mechanism that allows a given set of data to persist
+        beyond the life of the event, thus making it possible to store a state for the elements of the solution.
+    </p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt class="mandatory">Name <span class="property-type">optional</span></dt>
+        <dd>Name of the node.</dd>
+
+        <dt class="mandatory">Context layer <span class="property-type">required</span></dt>
+        <dd>The layer of the context that que variable is at.</dd>
+
+        <dt class="mandatory">Context name <span class="property-type">required</span></dt>
+        <dd>The variable that is in the context.</dd>
+
+        <dt class="mandatory">Context content <span class="property-type">required</span></dt>
+        <dd>The variable in the flow that will receive the value of the context</dd>
+    </dl>
 </script>
 
 <script type="text/javascript">

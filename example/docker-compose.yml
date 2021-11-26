@@ -1,0 +1,484 @@
+version: '3.8'
+services:
+
+  history:
+    image: dojot/history:v0.6.0
+    restart: always
+    depends_on:
+      - mongodb
+    environment:
+      FALCON_SETTINGS_MODULE: 'history.settings.docker'
+      DOJOT_MANAGEMENT_USER: 'history'
+      LOG_LEVEL: INFO
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  persister:
+    image: dojot/persister:v0.6.0
+    restart: always
+    depends_on:
+      - mongodb
+      - auth
+      - kafka
+      - data-broker
+    environment:
+      FALCON_SETTINGS_MODULE: 'history.settings.docker'
+      DOJOT_MANAGEMENT_USER: 'persister'
+      KAFKA_GROUP_ID: 'persister-group'
+      LOG_LEVEL: INFO
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  mongodb:
+    image: dojot/mongo:3.2
+    restart: always
+    user: "mongodb"
+    healthcheck:
+      test: echo 'db.runCommand("ping").ok' | mongo mongodb:27017/test --quiet
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+    volumes:
+      - mongodb-volume:/data/db
+      - mongodb-cfg-volume:/data/configdb
+
+  gui:
+    image: dojot/gui:v0.6.0
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  data-broker:
+    image: dojot/data-broker:v0.6.0
+    restart: always
+    depends_on:
+      - kafka
+      - data-broker-redis
+      - auth
+    environment:
+      DOJOT_MANAGEMENT_USER: 'data-broker'
+      KAFKA_GROUP_ID: 'data-broker-group'
+      SERVICE_PORT: ${DATA_BROKER_SERVICE_PORT}
+      DATA_BROKER_URL: 'http://data-broker:${DATA_BROKER_SERVICE_PORT}'
+      LOG_LEVEL: 'info'
+      KAFKA_NUM_PARTITIONS: 1
+      KAFKA_REPLICATION_FACTOR: 1
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  data-broker-redis:
+    image: dojot/redis:5.0.5-alpine3.10
+    restart: always
+    volumes:
+      - data-broker-redis-volume:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  device-manager:
+    image: dojot/device-manager:v0.6.0
+    restart: always
+    environment:
+      # TODO: Fill these env variables with suitable values
+      DEV_MNGR_CRYPTO_PASS: kamehameHA
+      DEV_MNGR_CRYPTO_IV: 1234567890123456
+      DEV_MNGR_CRYPTO_SALT: shuriken
+      DBHOST: postgres
+      DBUSER: devm
+      DBPASS: devm
+      LOG_LEVEL: INFO
+    depends_on:
+      - postgres
+      - kafka
+      - data-broker
+      - device-manager-redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  device-manager-redis:
+    image: dojot/redis:5.0.5-alpine3.10
+    restart: always
+    volumes:
+      - device-manager-redis-volume:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  postgres:
+    image: dojot/postgres:9.5.21-alpine
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: always
+    volumes:
+      - ./postgres/init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:Z
+      # - ./postgres/:/docker-entrypoint-initdb.d/
+      - postgres-volume:/var/lib/postgresql/data
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  # Prepare database, Bootstrap the database
+  kong-migrations:
+    image: dojot/kong:v0.6.0
+    command: kong migrations bootstrap
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: postgres
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: "kong"
+      KONG_PG_DATABASE: kong
+      KONG_LOG_LEVEL: info
+    restart: on-failure
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  # Run any new migrations and Finish running any pending migrations after 'up'.
+  kong-migrations-up:
+    image:  dojot/kong:v0.6.0
+    command: kong migrations up && kong migrations finish
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: postgres
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: "kong"
+      KONG_PG_DATABASE: kong
+      KONG_LOG_LEVEL: info
+    restart: on-failure
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  apigw:
+    image: dojot/kong:v0.6.0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kong-migrations:
+        condition: service_started
+      kong-migrations-up:
+        condition: service_started
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: postgres
+      KONG_PG_USER: kong
+      KONG_PG_DATABASE: kong
+      KONG_PG_PASSWORD: kong
+      KONG_LOG_LEVEL: info
+    ports:
+      - "8000:8000/tcp"
+    healthcheck:
+      test: ["CMD", "kong", "health"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  kong-config:
+    image: dojot/appropriate-curl
+    entrypoint: /opt/kong.config.sh
+    restart: on-failure
+    depends_on:
+      - apigw
+    volumes:
+      - ./kong/kong.config.sh:/opt/kong.config.sh:Z
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  auth:
+    image: dojot/auth:v0.6.0
+    restart: always
+    depends_on:
+      - apigw
+      - postgres
+      - auth-redis
+    environment:
+      AUTH_DB_HOST: "postgres"
+      AUTH_DB_USER: "auth"
+      AUTH_DB_PWD:  "auth"
+      AUTH_KONG_URL: "http://apigw:8001"
+      AUTH_CACHE_HOST: "auth-redis"
+      # This is used to select the type of cache to be used.
+      # Allowed values are "redis" or "nocache"
+      AUTH_CACHE_NAME: "redis"
+      DOJOT_MANAGEMENT_USER: 'auth'
+      KAFKA_GROUP_ID: 'auth-group'
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  auth-redis:
+    image: dojot/redis:5.0.5-alpine3.10
+    restart: always
+    volumes:
+      - auth-redis-volume:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  flowbroker:
+    image: dojot/flowbroker:v0.6.0
+    restart: always
+    environment:
+      DEPLOY_ENGINE: "docker"
+      FLOWBROKER_NETWORK: ${FLOWBROKER_NETWORK}
+      DOJOT_MANAGEMENT_USER: 'flowbroker'
+      KAFKA_GROUP_ID: 'flowbroker-group'
+      LOG_LEVEL: 'debug'
+    depends_on:
+      - rabbitmq
+      - kafka
+      - mongodb
+      - auth
+      - flowbroker-context-manager
+      - flowbroker-redis
+    networks:
+      - default
+      - flowbroker
+    volumes:
+      - flowbroker-volume:/data
+      - /var/run/docker.sock:/var/run/docker.sock:Z
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  flowbroker-redis:
+    image: dojot/redis:5.0.5-alpine3.10
+    restart: always
+    volumes:
+      - flowbroker-redis-volume:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  flowbroker-context-manager:
+    image: dojot/flowbroker-context-manager:v0.6.0
+    restart: always
+    environment:
+      ZOOKEEPER_HOST: zookeeper
+      ZOOKEEPER_PORT: 2181
+      ZOOKEEPER_LOG_LEVEL: 'debug'
+      ZEROMQ_PORT: 5556
+      HOLD_LOCK_TIMEOUT: 10000
+      WAIT_LOCK_TIMEOUT: 30000
+    depends_on:
+      - zookeeper
+    networks:
+      - default
+      - flowbroker
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  rabbitmq:
+    image: dojot/rabbitmq:3.7-alpine
+    restart: always
+    volumes:
+      - rabbitmq-volume:/var/lib/rabbitmq
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  zookeeper:
+    image: "confluentinc/cp-zookeeper:5.5.0"
+    restart: always
+    environment:
+      ZOOKEEPER_REPLICAS: "1"
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_ELECTION_PORT: 3888
+      ZOOKEEPER_SERVER_PORT: 2888
+      ZOOKEEPER_HEAP_SIZE: "2G"
+      ZOOKEEPER_INIT_LIMIT: "5"
+      ZOOKEEPER_LOG_LEVEL: "INFO"
+      ZOOKEEPER_MAX_CLIENT_CNXNS: "100"
+      ZOOKEEPER_MAX_SESSION_TIMEOUT: "40000"
+      ZOOKEEPER_MIN_SESSION_TIMEOUT: "4000"
+      ZOOKEEPER_PURGE_INTERVAL: "0"
+      ZOOKEEPER_SNAP_RETAIN_COUNT: "3"
+      ZOOKEEPER_SYNC_LIMIT: "10"
+      ZOOKEEPER_TICK_TIME: "2000"
+    volumes:
+      - zookeeper-volume:/var/lib/zookeeper/data
+      - zookeeper-log-volume:/var/lib/zookeeper/log
+      - zookeeper-secrets-volume:/etc/zookeeper/secrets
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  kafka:
+    image: confluentinc/cp-kafka:5.5.0
+    depends_on:
+      - zookeeper
+    restart: always
+    hostname: "kafka"
+    environment:
+      KAFKA_BROKER_ID: "1"
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+      KAFKA_ADVERTISED_LISTENERS: "PLAINTEXT://:9092"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: "1"
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: "1"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: "0"
+      KAFKA_LOG_RETENTION_MINUTES: "30"
+      KAFKA_LOG_SEGMENT_BYTES: "262144000"
+      KAFKA_LOG_RETENTION_CHECK_INTERVAL_MS: "30000"
+    volumes:
+      - kafka-volume:/var/lib/kafka/data
+      - kafka-secrets-volume:/etc/kafka/secrets
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  backstage:
+    image: dojot/backstage:v0.6.0
+    restart: always
+    depends_on:
+      - postgres
+    logging:
+      driver: json-file
+      options:
+        max-size: 20m
+        max-file: '5'
+
+  data-loader:
+    build:
+      context: ./
+      dockerfile: ./curl-dockerfile
+    depends_on:
+      - auth
+      - device-manager
+      - kafka
+      - flowbroker
+    command: /bin/sh /opt/dojot/import-data.sh
+    volumes:
+      - ./import-data.sh:/opt/dojot/import-data.sh:Z
+    logging:
+      driver: json-file
+      options:
+        max-size: 100m
+
+  kafkacat-producer:
+    build:
+      context: ./
+      dockerfile: ./kafkacat-dockerfile
+    depends_on:
+      - auth
+      - data-loader
+    restart: always
+    command: /bin/sh /opt/dojot/kafkacat-producer.sh
+    volumes:
+      - ./kafkacat-producer.sh:/opt/dojot/kafkacat-producer.sh:Z
+    logging:
+      driver: json-file
+      options:
+        max-size: 100m
+
+  flowbroker-ui:
+    build:
+      context: ./../
+      dockerfile: ./Dockerfile
+    depends_on:
+      - flowbroker
+      - auth
+      - device-manager
+      - data-broker
+    environment:
+      FLOWBROKERUI_LOG_VERBOSE: "true"
+      FLOWBROKERUI_LOG_CONSOLE_LEVEL: "debug"
+    restart: always
+    logging:
+      driver: json-file
+      options:
+        max-size: 100m
+
+volumes:
+  postgres-volume:
+  mongodb-volume:
+  mongodb-cfg-volume:
+  minio-volume:
+  rabbitmq-volume:
+  zookeeper-volume:
+  zookeeper-log-volume:
+  zookeeper-secrets-volume:
+  kafka-volume:
+  kafka-secrets-volume:
+  auth-redis-volume:
+  flowbroker-volume:
+  flowbroker-redis-volume:
+  data-broker-redis-volume:
+  device-manager-redis-volume:
+
+networks:
+  flowbroker:
+    name: ${FLOWBROKER_NETWORK}

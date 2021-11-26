@@ -1,5 +1,5 @@
 # Logs
-
+temp
 logs
 _.log
 npm-debug.log_
@@ -134,3 +134,11 @@ dist
 # TernJS port file
 
 .tern-port
+
+# Yarn.lock
+
+.yarn.lock
+
+
+# editor-ui Built
+app/@node-red/editor-client/public/red/

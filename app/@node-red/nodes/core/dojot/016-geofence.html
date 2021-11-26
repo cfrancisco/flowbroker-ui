@@ -26,23 +26,24 @@
 
 
 <script type="text/x-red" data-help-name="geofence">
-    <p>A simple geofence filter node</p>
-    <p>It supports polygons only, and will filter all messages that either fall inside, outside the region or when the device
-        enters or exits the region, depending on the selected mode.
+    <p>A simple geofence filter node. Select an interest area to determine which devices will activate the flow.</p>
+    <p>It supports polygons only, and will filter all messages that either fall inside, outside the region or when the device enters or exits the region, depending on the selected mode.</p>
+    <p>
+        If the node is given a name property then msg.location.isat will be an array containing a list of named areas that the point is inside of and msg.location.distance will contain an array of name, distance pairs. Where distance is the dinstance in metres to from the point to the centroid of the region.
     </p>
-    <p>If the node is given a name property then
-        <b>msg.location.isat</b> will be an array containing a list of named areas that the point is inside of and
-        <b>msg.location.distance</b>
-        will contain an array of name, distance pairs. Where distance is the dinstance in metres to from the point to the centroid
-        of the region.</p>
-    <p>This node requires inputs with
-        <i>msg.location.lat</i> &amp;
-        <i>msg.location.lon</i>
-        or
-        <i>msg.lat</i> &amp;
-        <i>msg.lon</i> values.</p>
+    <p>This node requires inputs with msg.location.lat & msg.location.lon or msg.lat & msg.lon values.</p>
 
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt class="mandatory">Geo Coordinate <span class="property-type">required</span></dt>
+        <dd>Area that will be selected. It can be chosen with an square or with a pentagon.</dd>
 
+        <dt class="mandatory">Filter <span class="property-type">required</span></dt>
+        <dd>Which side of the area will be picked: inside or outside the marked area in the field above.</dd>
+
+        <dt class="mandatory">Name <span class="property-type">optional</span></dt>
+        <dd>Name of the node.</dd>
+    </dl>
 </script>
 
 <script type="text/javascript">

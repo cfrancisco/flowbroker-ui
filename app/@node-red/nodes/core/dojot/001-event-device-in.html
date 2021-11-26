@@ -25,7 +25,28 @@
 </script>
 
 <script type="text/x-red" data-help-name="event device in">
-  <p>Use data retrieved from a previously configured sensor as input to logic.</p>
+  <p>Use data retrieved from a previously configured sensor as initial input to flow.</p>
+  <p>This node specifies that messages received from or sent to a particular device.</p>
+  <p>If the the device that triggers a flow is removed, the flow won’t work anymore.</p>
+
+  <h3>Inputs</h3>
+  <dl class="message-properties">
+    <dt class="mandatory">Name <span class="property-type">optional</span></dt>
+    <dd>Name of the node</dd>
+    <dt class="mandatory">Device <span class="property-type">required</span></dt>
+    <dd>The dojot device that will trigger the flow</dd>
+    <dt class="mandatory">Events <span class="property-type">required</span></dt>
+    <dd>
+        Select which events will trigger this flow. The
+        Actuation option will select actuation messages (those sent to the device)
+        and Publication will select all messages published by the device.
+    </dd>
+  </dl>
+
+  <h3>Outputs</h3>
+  <dl class="message-properties">
+      <dd>Input data received to start the flow</dd>
+  </dl>
 </script>
 
 <script type="text/javascript">
@@ -66,7 +87,7 @@
             page = 1;
           }
 
-          let extra = `?page_num=${page}`;
+          let extra = `?page_size=999999&page_num=${page}`;
           let orderByLabel = "sortBy=label";
 
           extra += "&" + orderByLabel;

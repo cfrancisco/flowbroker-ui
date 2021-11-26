@@ -26,7 +26,14 @@ const theme = require("./theme");
 let runtimeAPI;
 const editorClientDir = path.dirname(require.resolve("./../../../editor-client"));
 
-const defaultNodeIcon = path.join(editorClientDir, "public", "red", "images", "icons", "arrow-in.svg");
+const defaultNodeIcon = path.join(
+  editorClientDir,
+  "public",
+  "red",
+  "images",
+  "icons",
+  "arrow-in.svg",
+);
 const editorTemplatePath = path.join(editorClientDir, "templates", "index.mst");
 let editorTemplate;
 
@@ -54,20 +61,23 @@ module.exports = {
     const opts = {
       user: req.user,
       module,
-      icon
+      icon,
     };
-    runtimeAPI.nodes.getIcon(opts).then((data) => {
-      if (data) {
-        const contentType = mime.getType(icon);
-        res.set("Content-Type", contentType);
-        res.send(data);
-      } else {
-        res.sendFile(defaultNodeIcon);
-      }
-    }).catch((err) => {
-      console.log(err.stack);
-      apiUtils.rejectHandler(req, res, err);
-    });
+    runtimeAPI.nodes
+      .getIcon(opts)
+      .then((data) => {
+        if (data) {
+          const contentType = mime.getType(icon);
+          res.set("Content-Type", contentType);
+          res.send(data);
+        } else {
+          res.sendFile(defaultNodeIcon);
+        }
+      })
+      .catch((err) => {
+        console.log(err.stack);
+        apiUtils.rejectHandler(req, res, err);
+      });
   },
 
   moduleResource(req, res) {
@@ -75,24 +85,28 @@ module.exports = {
     const opts = {
       user: req.user,
       module: req.params[0],
-      path: resourcePath
+      path: resourcePath,
     };
-    runtimeAPI.nodes.getModuleResource(opts).then((data) => {
-      if (data) {
-        const contentType = mime.getType(resourcePath);
-        res.set("Content-Type", contentType);
-        res.send(data);
-      } else {
-        res.status(404).end();
-      }
-    }).catch((err) => {
-      console.log(err.stack);
-      apiUtils.rejectHandler(req, res, err);
-    });
+
+    runtimeAPI.nodes
+      .getModuleResource(opts)
+      .then((data) => {
+        if (data) {
+          const contentType = mime.getType(resourcePath);
+          res.set("Content-Type", contentType);
+          res.send(data);
+        } else {
+          res.status(404).end();
+        }
+      })
+      .catch((err) => {
+        console.log(err.stack);
+        apiUtils.rejectHandler(req, res, err);
+      });
   },
 
   async editor(req, res) {
     res.send(Mustache.render(editorTemplate, await theme.context()));
   },
-  editorResources: express.static(path.join(editorClientDir, "public"))
+  editorResources: express.static(path.join(editorClientDir, "public")),
 };

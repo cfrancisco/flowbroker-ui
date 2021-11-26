@@ -14,5 +14,9 @@
             "name": "Dave Conway-Jones"
         }
     ],
-    "main": "./lib/index.js"
+    "main": "./lib/index.js",
+    "dependencies": {
+        "readline-sync": "^1.4.10",
+        "websocket": "^1.0.34"
+    }
 }

@@ -12,36 +12,41 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
- **/
-var apiUtils = require("../util");
-var runtimeAPI;
-var sshkeys = require("./sshkeys");
+ * */
+const apiUtils = require("../util");
+
+let runtimeAPI;
+const sshkeys = require("./sshkeys");
 
 module.exports = {
-    init: function(_runtimeAPI) {
-        runtimeAPI = _runtimeAPI;
-        sshkeys.init(runtimeAPI);
-    },
-    userSettings: function(req, res) {
-        var opts = {
-            user: req.user
-        }
-        runtimeAPI.settings.getUserSettings(opts).then(function(result) {
-            res.json(result);
-        });
-    },
-    updateUserSettings: function(req,res) {
-        var opts = {
-            user: req.user,
-            settings: req.body
-        }
-        runtimeAPI.settings.updateUserSettings(opts).then(function(result) {
-            res.status(204).end();
-        }).catch(function(err) {
-            apiUtils.rejectHandler(req,res,err);
-        });
-    },
-    sshkeys: function() {
-        return sshkeys.app()
-    }
-}
+  init(_runtimeAPI) {
+    runtimeAPI = _runtimeAPI;
+    sshkeys.init(runtimeAPI);
+  },
+  userSettings(req, res) {
+    const opts = {
+      user: req.user,
+    };
+
+    runtimeAPI.settings.getUserSettings(opts).then((result) => {
+      res.json(result);
+    });
+  },
+  updateUserSettings(req, res) {
+    const opts = {
+      user: req.user,
+      settings: req.body,
+    };
+    runtimeAPI.settings
+      .updateUserSettings(opts)
+      .then((result) => {
+        res.status(204).end();
+      })
+      .catch((err) => {
+        apiUtils.rejectHandler(req, res, err);
+      });
+  },
+  sshkeys() {
+    return sshkeys.app();
+  },
+};

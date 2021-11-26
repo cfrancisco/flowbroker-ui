@@ -59,7 +59,7 @@ function serveFile(app, baseUrl, file) {
   try {
     const stats = fs.statSync(file);
     const url = baseUrl + path.basename(file);
-    logger.info(url, "->", file);
+    logger.debug(url, "->", file);
     app.get(url, (req, res) => {
       res.sendFile(file);
     });

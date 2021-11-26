@@ -47,6 +47,35 @@
     </div>
 </script>
 
+<script type="text/x-red" data-help-name="cron">
+    <p>A node used to create/remove cron jobs.</p>
+    <p>Cron allows creating schedule tasks to:</p>
+    <ul>
+        <li>send events to the data broker or</li>
+        <li>execute a http request.</li>
+    </ul>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt class="mandatory">Operation <span class="required"></span></dt>
+        <dd>Defines the type of processing if creating or removing cron jobs (CREATE, REMOVE).</dd>
+        <dt class="mandatory">CRON Time Expression <span class="property-type">required</span></dt>
+        <dd>CRON Time Expression, eg. * * * * * *. Required when using CREATE type operation.</dd>
+        <dt class="mandatory">JOB Name <span class="property-type">optional</span></dt>
+        <dd>Name of Job.</dd>
+        <dt class="mandatory">JOB Description <span class="property-type">optional</span></dt>
+        <dd>Description of Job.</dd>
+        <dt class="mandatory">JOB Type <span class="property-type">required</span></dt>
+        <dd>Options are EVENT REQUEST or HTTP REQUEST.</dd>
+        <dt class="mandatory">JOB Action <span class="property-type">required</span></dt>
+        <dd>Variable that contains the JSON to JOB Action. This value can be assigned to the variable using the template node, for example.</dd>
+        <dt class="mandatory">JOB Identifier (output to) <span class="property-type">required</span></dt>
+        <dd>Variable that will receive the JOB Identifier.</dd>
+        <dt class="mandatory">Name <span class="property-type">optional</span></dt>
+        <dd>Name of the node.</dd>
+    </dl>
+</script>
+
 <script type="text/javascript">
     RED.nodes.registerType('cron', {
         // (string) the palette category the node appears in
@@ -61,6 +90,7 @@
         outputs: 1,
         inputLabels: "in",
         outputLabels: ["out"],
+        paletteLabel: RED._('cron'),
         // (object) the editable properties for the node
         defaults: {
             name: {

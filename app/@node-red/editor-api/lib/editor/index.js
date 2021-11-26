@@ -17,14 +17,17 @@
 const express = require("express");
 const path = require("path");
 
+const importFresh = require("import-fresh");
+
 const { i18n } = require("@node-red/util");
 const { log } = require("@node-red/util");
-const comms = require("./comms");
-const library = require("./library");
+
+const comms = importFresh("./comms");
 const info = require("./settings");
 
 const auth = require("../auth");
-const nodes = require("../admin/nodes");
+
+const nodes = importFresh("../admin/nodes");
 // TODO: move /icons into here
 let needsPermission;
 let runtimeAPI;
@@ -54,6 +57,8 @@ module.exports = {
 
       ui.init(runtimeAPI);
 
+      // Creating a new express instance to serve editor-api
+
       const editorApp = express();
       if (settings.requireHttps === true) {
         editorApp.enable("trust proxy");
@@ -66,9 +71,9 @@ module.exports = {
         });
       }
       const defaultServerSettings = {
-        "x-powered-by": false
+        "x-powered-by": false,
       };
-      const serverSettings = { ...defaultServerSettings, ...settings.httpServerOptions || {} };
+      const serverSettings = { ...defaultServerSettings, ...(settings.httpServerOptions || {}) };
       for (const eOption in serverSettings) {
         editorApp.set(eOption, serverSettings[eOption]);
       }
@@ -99,21 +104,46 @@ module.exports = {
       const library = require("./library");
       library.init(runtimeAPI);
       // editorApp.get("/library/:id",needsPermission("library.read"),library.getLibraryConfig);
-      editorApp.get(/^\/library\/([^\/]+)\/([^\/]+)(?:$|\/(.*))/, needsPermission("library.read"), library.getEntry);
-      editorApp.post(/^\/library\/([^\/]+)\/([^\/]+)\/(.*)/, needsPermission("library.write"), library.saveEntry);
-
+      editorApp.get(
+        /^\/library\/([^\/]+)\/([^\/]+)(?:$|\/(.*))/,
+        needsPermission("library.read"),
+        library.getEntry,
+      );
+      editorApp.post(
+        /^\/library\/([^\/]+)\/([^\/]+)\/(.*)/,
+        needsPermission("library.write"),
+        library.saveEntry,
+      );
 
       // Credentials
       const credentials = require("./credentials");
       credentials.init(runtimeAPI);
-      editorApp.get("/credentials/:type/:id", needsPermission("credentials.read"), credentials.get, apiUtil.errorHandler);
+      editorApp.get(
+        "/credentials/:type/:id",
+        needsPermission("credentials.read"),
+        credentials.get,
+        apiUtil.errorHandler,
+      );
 
       // Settings
       //  Main /settings route is an admin route - see lib/admin/settings.js
       // User Settings
-      editorApp.get("/settings/user", needsPermission("settings.read"), info.userSettings, apiUtil.errorHandler);
+      editorApp.get(/^\/locales\/(.+)\/?$/, locales.get, apiUtil.errorHandler);
+
+      editorApp.get(
+        "/settings/user",
+        needsPermission("settings.read"),
+        info.userSettings,
+        apiUtil.errorHandler,
+      );
       // User Settings
-      editorApp.post("/settings/user", needsPermission("settings.write"), info.updateUserSettings, apiUtil.errorHandler);
+      editorApp.post(
+        "/settings/user",
+        needsPermission("settings.write"),
+        info.updateUserSettings,
+        apiUtil.errorHandler,
+      );
+
       // SSH keys
       editorApp.use("/settings/user/keys", needsPermission("settings.write"), info.sshkeys());
 
@@ -121,14 +151,18 @@ module.exports = {
     }
   },
   start() {
-    const catalogPath = path.resolve(path.join(path.dirname(require.resolve("./../../../editor-client")), "locales"));
-    return i18n.registerMessageCatalogs([
-      { namespace: "editor", dir: catalogPath, file: "editor.json" },
-      { namespace: "jsonata", dir: catalogPath, file: "jsonata.json" },
-      { namespace: "infotips", dir: catalogPath, file: "infotips.json" }
-    ]).then(() => {
-      comms.start();
-    });
+    const catalogPath = path.resolve(
+      path.join(path.dirname(require.resolve("./../../../editor-client")), "locales"),
+    );
+    return i18n
+      .registerMessageCatalogs([
+        { namespace: "editor", dir: catalogPath, file: "editor.json" },
+        { namespace: "jsonata", dir: catalogPath, file: "jsonata.json" },
+        { namespace: "infotips", dir: catalogPath, file: "infotips.json" },
+      ])
+      .then(() => {
+        comms.start();
+      });
   },
-  stop: comms.stop
+  stop: comms.stop,
 };

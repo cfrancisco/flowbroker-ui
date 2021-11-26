@@ -20,10 +20,35 @@
 
 <script type="text/x-red" data-help-name="switch">
     <p>A node to route messages based on property values.</p>
-    <p>When a message arrives, the selected property is evaluated against each
-    of the defined rules. The message is then sent to the output of <i>all</i>
-    rules that pass.</p>
-    <p><b>Note</b>: the <i>otherwise</i> rule applies as a "not any of" the rules preceding it.</p>
+    <p>
+        When a message arrives, the selected property is evaluated against each of the defined rules. The otherwise rule applies as a “not any of” the rules preceding it.
+    </p>
+    <p>
+        When a message arrives, the selected property is evaluated against each of the defined rules. The otherwise rule applies as a “not any of” the rules preceding it.
+    </p>
+    <p>
+        The rules are mapped one-to-one to the output conectors. Then the first rule is related to the first output, the second rule to the second output and so on.
+    </p>
+
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt class="mandatory">Name <span class="property-type">optional</span></dt>
+        <dd>Name of the node.</dd>
+        <dt class="mandatory">Property <span class="property-type">required</span></dt>
+        <dd>Variable that will be evaluated.</dd>
+        <dt class="mandatory">Rule box <span class="property-type">required</span></dt>
+        <dd>
+            Rules that will determine the output branch of the
+            node. Also, it can be configured to stop checking rules when it finds one
+            that matches other or check all the rules and route the message to the
+            corresponding output.
+        </dd>
+    </dl>
+
+    <h3>Outputs</h3>
+    <dl class="message-properties">
+        <dd>The message is then sent to the output of all rules that pass.</dd>
+    </dl>
 </script>
 
 <script type="text/javascript">

@@ -1,0 +1,11 @@
+FROM alpine:latest as base
+
+# Create app directory
+WORKDIR /opt/dojot
+
+# Install prerequisites
+# curl
+RUN apk add curl
+
+# json parser
+RUN apk add jq

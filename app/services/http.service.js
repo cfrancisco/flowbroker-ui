@@ -13,15 +13,17 @@ const logger = new Logger("flowbroker-ui:http.service");
 const host = `${config.dojot.host}:${config.dojot.port}`;
 
 /**
-* Do a Login
-*
-*/
+ * Do a Login
+ *
+ */
 const getToken = async () => {
   try {
     logger.info("Requesting Token to Dojot.");
-    const res = await axios.post(`${host}/auth/`,
+    const res = await axios.post(
+      `${host}/auth/`,
       { username: config.flowui.user, passwd: config.flowui.password },
-      { accept: "application/json" });
+      { accept: "application/json" },
+    );
     return res.data.jwt;
   } catch (err) {
     logger.error(`Call Http.service - Requesting error: ${err.toString()}`);
@@ -33,20 +35,15 @@ const getDevices = async (params = "") => {
   try {
     const token = await getToken();
     logger.info("Getting Devices from Dojot.");
-    const config = {
+    const axiosConfig = {
       accept: "application/json",
       headers: { Authorization: `Bearer ${token}` },
     };
-    return axios.get(
-      `${host}/device${params}`,
-      config
-    );
+    return axios.get(`${host}/device${params}`, axiosConfig);
   } catch (err) {
-    //  console.log("err,", err);
     logger.error(`Call Http.service - Requesting error: ${err.toString()}`);
     return [];
   }
 };
-
 
 module.exports = { getDevices };

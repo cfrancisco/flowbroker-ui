@@ -1,29 +1,30 @@
-
-const storageForFlows = {};
-
 /**
-* Converting NodeRed's Flows to Dojot's Flows
-*
-* @param {Array} flows NodeRed's Flows
-*/
-const castFlowsToDojot = (flows) => {
-  const flowsElements = JSON.parse(JSON.stringify(storageForFlows));
-  // console.log("storageForFlows", storageForFlows);
+ * Converting NodeRed's Flows to Dojot's Flows
+ * @method castFlowsToDojot
+ * @param {Object} auxiliarStorage Tenant-specific storage for Flows
+ * @param {Array} flows NodeRed's Flows
+ */
+const castFlowsToDojot = (auxiliarStorage, flows) => {
+  const flowsElements = JSON.parse(JSON.stringify(auxiliarStorage));
   flows.forEach((flow) => {
+    // for other nodes (always have a parent node (z))
     if (flow.z !== undefined) {
       flowsElements[flow.z].flow.push(flow);
       return;
     }
 
-    // just found a tab node
+    // for tab node
     if (flowsElements[flow.id] === undefined) {
+      // new flow and new tab node
       flowsElements[flow.id] = {};
       flowsElements[flow.id].flow = [];
       flowsElements[flow.id].name = flow.label;
       flowsElements[flow.id].isNew = true;
       flowsElements[flow.id].flow.push(flow);
     } else {
+      // already created flow
       flowsElements[flow.id].flow.push(flow);
+      flowsElements[flow.id].name = flow.label;
       flowsElements[flow.id].shouldBeDeleted = false;
     }
   });
@@ -31,11 +32,11 @@ const castFlowsToDojot = (flows) => {
 };
 
 /**
-* Converting Dojot's Flows to NodeRed's Flows
-*
-* @param {Array} flows Dojot's Flows
-*/
-const castDojotToFlows = (flows) => {
+ * Converting Dojot's Flows to NodeRed's Flows
+ *
+ * @param {Array} flows Dojot's Flows
+ */
+const castDojotToFlows = (auxiliarStorage, flows) => {
   const myFlows = [];
   flows.forEach((flow) => {
     const flowName = flow.name;
@@ -44,8 +45,8 @@ const castDojotToFlows = (flows) => {
     if (flowList.length === 0) return;
 
     flowList[0].label = flowName;
-    // tab node
-    storageForFlows[flowList[0].id] = {
+    // it's tab node
+    auxiliarStorage[flowList[0].id] = {
       name: flowName,
       created: flow.created,
       enabled: flow.enabled,
@@ -58,9 +59,7 @@ const castDojotToFlows = (flows) => {
     myFlows.push(...flowList);
   });
 
-  // console.log(myFlows);
   return myFlows;
 };
-
 
 module.exports = { castFlowsToDojot, castDojotToFlows };

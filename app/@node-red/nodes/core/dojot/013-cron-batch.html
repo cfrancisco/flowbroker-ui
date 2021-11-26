@@ -107,6 +107,22 @@
     });
 </script>
 
+<script type="text/x-red" data-help-name="cron-batch">
+    <p>Similar as <strong>cron node</strong>, but allows using a batch of schedules instead of only one.</p>
+    <h3>Inputs</h3>
+    <dl class="message-properties">
+        <dt class="mandatory">Operation <span class="property-type">required</span></dt>
+        <dd>Defines the types of processings if creating or removing cron jobs (CREATE, REMOVE).</dd>
+        <dt class="mandatory">JOB requests <span class="property-type">required</span></dt>
+        <dd>Variable that contains the array of JSONs to JOB Actions.</dd>
+        <dt class="mandatory">JOB identifiers <span class="property-type">required</span></dt>
+        <dd>Variable that will receive the array of job identifiers.</dd>
+        <dt class="mandatory">Name <span class="property-type">optional</span></dt>
+        <dd>Name of the node.</dd>
+    </dl>
+</script>
+
+
 <script type="text/html" data-template-name="cron-batch">
     <div class="form-row">
         <label for="node-input-name"><i class="fa fa-tag"></i> <span data-i18n="cron-batch.label.name"></span></label>

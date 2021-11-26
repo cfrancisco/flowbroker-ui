@@ -36,7 +36,51 @@
   </div>
 </script>
 
-<script type="text/x-red" data-help-name="publish-ftp"></script>
+<script type="text/x-red" data-help-name="publish-ftp">
+  <p>Node to forward messages to Apache Kafka FTP topic.</p>
+  <p>
+    It publishes to the <strong>tenant.dojot.ftp</strong> topic (tenant is defined by which tenant the flow belongs to)
+    in which the messages are produced with informations about the file name,
+    encoding format and file content.
+  </p>
+
+  <h3>Inputs</h3>
+  <dl class="message-properties">
+    <dt class="mandatory">Encoding <span class="property-type">required</span></dt>
+    <dd>The encoding that the file to be sent uses. Valid values are: ascii, base64, hex, utf16le, utf8 and binary.</dd>
+
+    <dt class="mandatory">Filename <span class="property-type">required</span></dt>
+    <dd>Variable with the name of the file to be sent.</dd>
+
+    <dt class="mandatory">Content <span class="property-type">required</span></dt>
+    <dd>Variable with the file contents to be sent.</dd>
+
+    <dt class="mandatory">Name <span class="property-type">optional</span></dt>
+    <dd>Name of the node.</dd>
+  </dl>
+
+  <h3>Outputs</h3>
+  <dl class="message-properties">
+    <dd>
+      Example of a message sent by this node:
+    </dd>
+    <pre>
+      {
+        "metadata": {
+          "msgId": "33846252-659f-42cc-8831-e2ccb923a702",
+          "ts": 1571858674,
+          "service": "flowbroker",
+          "contentType": "application/vnd.dojot.ftp+json"
+        },
+        "data": {
+          "filename": "filename.jpg",
+          "encoding": "base64",
+          "content": "..."
+        }
+      }
+    </pre>
+  </dl>
+</script>
 
 <script type="text/javascript">
   RED.nodes.registerType("publish-ftp", {

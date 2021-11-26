@@ -1,45 +1,37 @@
 /**
- * Copyright JS Foundation and other contributors, http://js.foundation
+ * This module provides an Express application to serve the
+ * Node-RED editor.
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * It implements the Node-RED HTTP Admin API the Editor uses
+ * to interact with the Node-RED runtime.
  *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- * */
+ * @namespace @node-red/editor-api
+ */
 
+const { Logger } = require("@dojot/microservice-sdk");
 
-/**
-  * This module provides an Express application to serve the Node-RED editor.
-  *
-  * It implements the Node-RED HTTP Admin API the Editor uses to interact
-  * with the Node-RED runtime.
-  *
-  * @namespace @node-red/editor-api
-  */
+const importFresh = require("import-fresh");
+
+const logger = new Logger("flowbroker-ui:editor-api");
 
 const express = require("express");
+
 const bodyParser = require("body-parser");
-const util = require("util");
+
 const passport = require("passport");
+
 const cors = require("cors");
 
 const auth = require("./auth");
+
 const apiUtil = require("./util");
 
-let adminApp;
-let server;
-let editor;
+const RepoEditorApi = require("../../../repository/RepoEditorApi");
 
+const repo = new RepoEditorApi();
 
 /**
- * Initialise the module.
+ * Initialize the module.
  * @param  {Object}     settings   The runtime settings
  * @param  {HTTPServer} _server     An instance of HTTP Server
  * @param  {Storage}    storage    An instance of Node-RED Storage
@@ -47,69 +39,75 @@ let editor;
  * @memberof @node-red/editor-api
  */
 function init(settings, _server, storage, runtimeAPI) {
-  server = _server;
-  if (settings.httpAdminRoot !== false) {
-    adminApp = express();
+  repo.server = _server;
+  logger.info("Initializing the module editor-api.", { rid: `tenant/${runtimeAPI.tenant}` });
+  repo.tenant = runtimeAPI.tenant;
 
-    const cors = require("cors");
-    var corsHandler = cors({
-      origin: "*",
-      methods: "GET,PUT,POST,DELETE"
-    });
-    adminApp.use(corsHandler);
+  repo.adminApp = express();
 
-    if (settings.httpAdminMiddleware) {
-      if (typeof settings.httpAdminMiddleware === "function" || Array.isArray(settings.httpAdminMiddleware)) {
-        adminApp.use(settings.httpAdminMiddleware);
-      }
+  var corsHandler = cors({
+    origin: "*",
+    methods: "GET,PUT,POST,DELETE",
+  });
+  repo.adminApp.use(corsHandler);
+
+  if (settings.httpAdminMiddleware) {
+    if (
+      typeof settings.httpAdminMiddleware === "function" ||
+      Array.isArray(settings.httpAdminMiddleware)
+    ) {
+      repo.adminApp.use(settings.httpAdminMiddleware);
     }
-
-    const defaultServerSettings = {
-      "x-powered-by": false
-    };
-    const serverSettings = { ...defaultServerSettings, ...settings.httpServerOptions || {} };
-    for (const eOption in serverSettings) {
-      adminApp.set(eOption, serverSettings[eOption]);
-    }
-
-    auth.init(settings, storage);
-
-    const maxApiRequestSize = settings.apiMaxLength || "5mb";
-    adminApp.use(bodyParser.json({ limit: maxApiRequestSize }));
-    adminApp.use(bodyParser.urlencoded({ limit: maxApiRequestSize, extended: true }));
-
-    adminApp.get("/auth/login", auth.login, apiUtil.errorHandler);
-    if (settings.adminAuth) {
-      if (settings.adminAuth.type === "strategy") {
-        auth.genericStrategy(adminApp, settings.adminAuth.strategy);
-      } else if (settings.adminAuth.type === "credentials") {
-        adminApp.use(passport.initialize());
-        adminApp.post("/auth/token",
-          auth.ensureClientSecret,
-          auth.authenticateClient,
-          auth.getToken,
-          auth.errorHandler);
-      }
-      adminApp.post("/auth/revoke", auth.needsPermission(""), auth.revoke, apiUtil.errorHandler);
-    }
-
-    // Editor
-    if (!settings.disableEditor) {
-      editor = require("./editor");
-      const editorApp = editor.init(server, settings, runtimeAPI);
-      adminApp.use(editorApp);
-    }
-
-    if (settings.httpAdminCors) {
-      var corsHandler = cors(settings.httpAdminCors);
-      adminApp.use(corsHandler);
-    }
-
-    const adminApiApp = require("./admin").init(settings, runtimeAPI);
-    adminApp.use(adminApiApp);
-  } else {
-    adminApp = null;
   }
+
+  const defaultServerSettings = {
+    "x-powered-by": false,
+  };
+  const serverSettings = { ...defaultServerSettings, ...(settings.httpServerOptions || {}) };
+  for (const eOption in serverSettings) {
+    repo.adminApp.set(eOption, serverSettings[eOption]);
+  }
+
+  auth.init(settings, storage);
+
+  const maxApiRequestSize = settings.apiMaxLength || "5mb";
+  repo.adminApp.use(bodyParser.json({ limit: maxApiRequestSize }));
+  repo.adminApp.use(bodyParser.urlencoded({ limit: maxApiRequestSize, extended: true }));
+
+  repo.adminApp.get("/auth/login", auth.login, apiUtil.errorHandler);
+  if (settings.adminAuth) {
+    if (settings.adminAuth.type === "strategy") {
+      auth.genericStrategy(repo.adminApp, settings.adminAuth.strategy);
+    } else if (settings.adminAuth.type === "credentials") {
+      repo.adminApp.use(passport.initialize());
+      repo.adminApp.post(
+        "/auth/token",
+        auth.ensureClientSecret,
+        auth.authenticateClient,
+        auth.getToken,
+        auth.errorHandler,
+      );
+    }
+    repo.adminApp.post("/auth/revoke", auth.needsPermission(""), auth.revoke, apiUtil.errorHandler);
+  }
+
+  // Editor
+  repo.editor = importFresh("./editor");
+  const editorApp = repo.editor.init(repo.server, settings, runtimeAPI);
+  repo.adminApp.use(editorApp);
+
+  if (settings.httpAdminCors) {
+    var corsHandler = cors(settings.httpAdminCors);
+    repo.adminApp.use(corsHandler);
+  }
+
+  logger.info("Requesting initialization for Admin-API to be set in express service.", {
+    rid: `tenant/${runtimeAPI.tenant}`,
+  });
+
+  const adminApiApp = importFresh("./admin").init(settings, runtimeAPI, editorApp);
+  // ${repo.tenant}
+  repo.adminApp.use("/", adminApiApp);
 }
 
 /**
@@ -118,8 +116,11 @@ function init(settings, _server, storage, runtimeAPI) {
  * @memberof @node-red/editor-api
  */
 async function start() {
-  if (editor) {
-    return editor.start();
+  logger.info("Starting Editor-API.", {
+    rid: `tenant/${repo.tenant}`,
+  });
+  if (repo.editor) {
+    return repo.editor.start();
   }
 }
 
@@ -129,8 +130,8 @@ async function start() {
  * @memberof @node-red/editor-api
  */
 async function stop() {
-  if (editor) {
-    editor.stop();
+  if (repo.editor) {
+    repo.editor.stop();
   }
 }
 module.exports = {
@@ -139,16 +140,18 @@ module.exports = {
   stop,
 
   /**
-    * @memberof @node-red/editor-api
-    * @mixes @node-red/editor-api_auth
-    */
+   * @memberof @node-red/editor-api
+   * @mixes @node-red/editor-api_auth
+   */
   auth: {
-    needsPermission: auth.needsPermission
+    needsPermission: auth.needsPermission,
   },
   /**
-     * The Express app used to serve the Node-RED Editor
-     * @type ExpressApplication
-     * @memberof @node-red/editor-api
-     */
-  get httpAdmin() { return adminApp; }
+   * The Express app used to serve the Node-RED Editor
+   * @type ExpressApplication
+   * @memberof @node-red/editor-api
+   */
+  get httpAdmin() {
+    return repo.adminApp;
+  },
 };
